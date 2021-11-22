@@ -7,6 +7,13 @@
         );
 }
 
+float3 CalculateNormal(float3 oriNormal, float3 tangent, float3 bitagent, float2 uv, sampler2D normalMap, float intensity)
+{
+    float3x3 tangentTransform = float3x3(tangent,bitagent,normalize(oriNormal));
+    float3 unpackNormal = UnpackNormalWithScale(tex2D(normalMap, uv),intensity);
+    return normalize(mul(unpackNormal.rgb, tangentTransform));
+}
+
 float rand(float3 seed)
 {
     return frac(sin(dot(seed,float3(68.656, 49.6498, 94.3219))) * 1981.1659);

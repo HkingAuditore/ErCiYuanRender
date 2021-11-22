@@ -2,26 +2,38 @@
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "white" {}
+        _GrassTex ("Grass Texture", 2D) = "white" {}
+        [Toggle]_IsTex("Is Tex",Float) = 0
+        
+        
+        _AlphaClip("Alpha Clipy", Range(0, 1)) = 0.2
         
         _BaseColor("Base Color", COLOR) = (1,1,1,1)
         _AOColor("AO Color", COLOR) = (0,0,0,0)
         
-        _BendIntensity("Bend Intensity", Range(0, 1)) = 0.2
+        _BendIntensity("Bend Intensity", Range(0, 2)) = 0.2
 //        _BendIntensity("Bend Forward Amount", Float) = 0.38
         _BendCurve("Bend Curvature Amount", Range(1, 4)) = 2
         
-        _TessellationUniform("Tessellation Uniform", Range(1, 64)) = 1
+        _TessellationUniform("Tessellation Uniform", Range(0, 64)) = 1
         
+        _GrassHeightMap("Grass Height Map", 2D) = "white" {}
         _MaxWidth("Max Width", Float) = 0.1
         _MinWidth("Min Width", Float) = 0.2
         _MaxHeight("Max Height", Float) = 0.2
         _MinHeight("Min Height", Float) = 0.5
+        
+        _WindDistortionMap("Wind Distortion Map", 2D) = "white" {}
+        _WindFrequency("Wind Frequency", Vector) = (0.05, 0.05, 0, 0)
+        _WindStrength("Wind Strength", Range(0, 1)) = .5
+        
+        [Toggle]_LowCostMode("Low Cost Mode",Float) = 0
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
-        LOD 10
+        Tags { "Queue"="Geometry" "RenderType"="Opaque" }
+        
+        LOD 100
  
         Pass
         {
@@ -35,6 +47,9 @@
             // make fog work
             #pragma multi_compile_fog
             #pragma multi_compile_fwdbase
+            #pragma shader_feature _ISTEX_ON
+            // #pragma shader_feature _LowCostMode_ON _LowCostMode_OFF
+            // #define _LowCostMode_OFF
             
  
             #include "UnityCG.cginc"
@@ -71,6 +86,8 @@
  
             fixed4 frag (g2f i, half facing : VFACE) : SV_Target
             {
+                half4 tex = tex2D(_GrassTex,i.uv);
+                clip(tex.a-_AlphaClip);
                 // sample the texture
                 // fixed4 col = tex2D(_MainTex, i.uv);
                 // apply fog
@@ -91,14 +108,18 @@
                 float4 shade = saturate(NdotL * shadow  + transmission * (shadow + .1) + sss.x) * _LightColor0  + float4(ambient,1);
 
                 // return shadow;
-                return lerp(_AOColor,_BaseColor,i.uv.y* shade);
+                
+                half4 col = tex * lerp(_AOColor,_BaseColor,i.uv.y)* saturate(shade*.5+.5);
+                
+                UNITY_APPLY_FOG(i.fogCoord, col);
+                return col;
             }
             ENDCG
         }
         
-        Pass{
+        Pass
+        {
             Tags{"LightMode" = "ShadowCaster"}
-            
             CGPROGRAM
             
             #pragma vertex vert
@@ -109,13 +130,18 @@
             // make fog work
             #pragma target 4.6
             #pragma multi_compile_shadowcaster
+            #pragma shader_feature _ISTEX_ON
+            #pragma shader_feature _LowCostMode_ON _LowCostMode_OFF
  
             #include "UnityCG.cginc"
             #include "GrassHeader.cginc"
+
             
  
             fixed4 frag (g2f i) : SV_Target
             {
+                half4 tex = tex2D(_GrassTex,i.uv);
+                clip(tex.a-_AlphaClip);
                 SHADOW_CASTER_FRAGMENT(i)
             }
             ENDCG
