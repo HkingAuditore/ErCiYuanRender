@@ -26,13 +26,16 @@ struct g2f
     float4 vertex : SV_POSITION;
     float2 uv : TEXCOORD0;
     float3 normal : NORMAL;
-    unityShadowCoord4 _ShadowCoord : TEXCOORD1;
+    float4 worldPos : TEXCOORD1;
+    float3 viewDir : TEXCOORD2;
+    unityShadowCoord4 _ShadowCoord : TEXCOORD3;
+    
     // UNITY_FOG_COORDS(1)
 };
 
 sampler2D _MainTex;
 half4 _BaseColor;
-half4 _HeightShadowColor;
+half4 _AOColor;
 float4 _MainTex_ST;
 
 half _BendIntensity;
@@ -59,7 +62,9 @@ g2f GetGrassVertexGeo(float3 pos, float2 uv, float3 normal)
     g2f o;
     o.vertex = UnityObjectToClipPos(pos);
     o.uv = uv;
-    o.normal = UnityObjectToWorldNormal(normal);
+    o.normal = normalize(UnityObjectToWorldNormal(normal));
+    o.worldPos = mul(unity_ObjectToWorld, o.vertex);
+    o.viewDir = normalize(UnityWorldSpaceViewDir(o.worldPos));
     o._ShadowCoord = ComputeScreenPos(o.vertex);
     #if UNITY_PASS_SHADOWCASTER
         o.vertex = UnityApplyLinearShadowBias(o.vertex);
@@ -72,7 +77,7 @@ g2f GenerateGrass(float3 pos, float width, float height, float bendIntensity, fl
 {
     float3 tangentPos = float3(width, bendIntensity, height); // 在这里计算offset
 
-    float3 tangentNormal = float3(0,-1,0);
+    float3 tangentNormal = normalize(float3(0,-1,bendIntensity));
     float3 localNormal = mul(transMatrix, tangentNormal);
     
     float3 localPos = pos + mul(transMatrix, tangentPos);
