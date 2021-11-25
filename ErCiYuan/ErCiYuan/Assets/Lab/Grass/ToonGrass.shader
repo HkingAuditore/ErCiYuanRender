@@ -38,12 +38,13 @@
         
         LOD 100
         
-                Pass
+        Pass
         {
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             // make fog work
+            #pragma multi_compile_fwdbase 
             #pragma multi_compile_fog
 
             #include <UnityShadowLibrary.cginc>
@@ -131,8 +132,11 @@
                 
                 //直射
                 float NdotL = dot(N,L);
+            	float3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz + ShadeSH9(float4(N,1));
 
-            	float4 col = tex * lerp(_BaseColor,_ShadowColor,NdotL * (shadow * .5 + .5));
+
+            	float4 col = tex * lerp(_ShadowColor,_BaseColor,NdotL)* (shadow * .5 + .5);
+            	col.rgb += ambient;
             	
 
                 UNITY_APPLY_FOG(i.fogCoord, col);
@@ -224,37 +228,7 @@
             ENDCG
         }
         
-        Pass
-        {
-            Tags{"LightMode" = "ShadowCaster"}
-            CGPROGRAM
-            
-            #pragma vertex vert
-            #pragma hull hull
-            #pragma domain domain
-            #pragma geometry geom
-            #pragma fragment frag
-            // make fog work
-            #pragma target 4.6
-            #pragma multi_compile_shadowcaster
-            #pragma shader_feature _ISTEX_ON
-            #pragma shader_feature _LowCostMode_ON _LowCostMode_OFF
- 
-            #include "UnityCG.cginc"
-            #include "GrassHeader.cginc"
-
-            
- 
-            fixed4 frag (g2f i) : SV_Target
-            {
-                half4 tex = tex2D(_GrassTex,i.uv);
-                clip(tex.a-_AlphaClip);
-                SHADOW_CASTER_FRAGMENT(i)
-            }
-            ENDCG
-        }
-        
-         Pass 
+        	    Pass 
 		{
             //此pass就是 从默认的fallBack中找到的 "LightMode" = "ShadowCaster" 产生阴影的Pass
 			Tags { "LightMode" = "ShadowCaster" }
@@ -288,6 +262,37 @@
 			ENDCG
 
 		}
+
+        Pass
+        {
+            Tags{"LightMode" = "ShadowCaster"}
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma hull hull
+            #pragma domain domain
+            #pragma geometry geom
+            #pragma fragment frag
+            // make fog work
+            #pragma target 4.6
+            #pragma multi_compile_shadowcaster
+            #pragma shader_feature _ISTEX_ON
+            #pragma shader_feature _LowCostMode_ON _LowCostMode_OFF
+ 
+            #include "UnityCG.cginc"
+            #include "GrassHeader.cginc"
+
+            
+ 
+            fixed4 frag (g2f i) : SV_Target
+            {
+                half4 tex = tex2D(_GrassTex,i.uv);
+                clip(tex.a-_AlphaClip);
+                SHADOW_CASTER_FRAGMENT(i)
+            }
+            ENDCG
+        }
+        
     }
     
 }
