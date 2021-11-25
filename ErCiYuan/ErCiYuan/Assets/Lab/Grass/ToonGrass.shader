@@ -46,8 +46,7 @@
             // make fog work
             #pragma multi_compile_fwdbase 
             #pragma multi_compile_fog
-
-            #include <UnityShadowLibrary.cginc>
+            
 
             #include "UnityCG.cginc"
             #include "MyShaderInc.cginc"
@@ -64,13 +63,13 @@
 
             struct v2f
             {
-                float4 vertex : SV_POSITION;
+                float4 pos : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
                 float4 worldPos : TEXCOORD1;
                 float3 viewDir : TEXCOORD2;
                 float2 globalUV : TEXCOORD3;
-                unityShadowCoord4 _ShadowCoord : TEXCOORD4;
+                SHADOW_COORDS(4)
                 UNITY_FOG_COORDS(5)
             };
 
@@ -104,16 +103,12 @@
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.pos = UnityObjectToClipPos(v.vertex);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 o.normal = normalize(UnityObjectToWorldNormal(v.normal));
-                o.worldPos = mul(unity_ObjectToWorld, o.vertex);
+                o.worldPos = mul(unity_ObjectToWorld, o.pos);
                 o.viewDir = normalize(UnityWorldSpaceViewDir(o.worldPos));
-                o._ShadowCoord = ComputeScreenPos(o.vertex);
-                UNITY_TRANSFER_FOG(o,o.vertex);
-                #if UNITY_PASS_SHADOWCASTER
-                    o.vertex = UnityApplyLinearShadowBias(o.vertex);
-                #endif
+                TRANSFER_SHADOW(o);
                 return o;
             }
 
@@ -133,10 +128,11 @@
                 //直射
                 float NdotL = dot(N,L);
             	float3 ambient = UNITY_LIGHTMODEL_AMBIENT.xyz + ShadeSH9(float4(N,1));
+            	float4 shade = saturate(NdotL * shadow) * _LightColor0  + float4(ambient,1);
 
-
-            	float4 col = tex * lerp(_ShadowColor,_BaseColor,NdotL)* (shadow * .5 + .5);
-            	col.rgb += ambient;
+				// return shadow;
+                half4 col = tex * lerp(_AOColor,_BaseColor,_AOIntensity)* lerp(_ShadowColor,half4(1,1,1,1),shade);
+            	// col.rgb += ambient;
             	
 
                 UNITY_APPLY_FOG(i.fogCoord, col);
@@ -228,7 +224,7 @@
             ENDCG
         }
     	
-    	        Pass
+    	Pass
         {
             Tags{"LightMode" = "ShadowCaster"}
             CGPROGRAM
@@ -253,6 +249,7 @@
             {
                 half4 tex = tex2D(_GrassTex,i.uv);
                 clip(tex.a-_AlphaClip);
+            	// return 1;
                 SHADOW_CASTER_FRAGMENT(i)
             }
             ENDCG
