@@ -227,8 +227,39 @@
             }
             ENDCG
         }
+    	
+    	        Pass
+        {
+            Tags{"LightMode" = "ShadowCaster"}
+            CGPROGRAM
+            
+            #pragma vertex vert
+            #pragma hull hull
+            #pragma domain domain
+            #pragma geometry geom
+            #pragma fragment frag
+            // make fog work
+            #pragma target 4.6
+            #pragma multi_compile_shadowcaster
+            #pragma shader_feature _ISTEX_ON
+            #pragma shader_feature _LowCostMode_ON _LowCostMode_OFF
+ 
+            #include "UnityCG.cginc"
+            #include "GrassHeader.cginc"
+
+            
+ 
+            fixed4 frag (g2f i) : SV_Target
+            {
+                half4 tex = tex2D(_GrassTex,i.uv);
+                clip(tex.a-_AlphaClip);
+                SHADOW_CASTER_FRAGMENT(i)
+            }
+            ENDCG
+        }
+
         
-        	    Pass 
+        Pass 
 		{
             //此pass就是 从默认的fallBack中找到的 "LightMode" = "ShadowCaster" 产生阴影的Pass
 			Tags { "LightMode" = "ShadowCaster" }
@@ -263,35 +294,6 @@
 
 		}
 
-        Pass
-        {
-            Tags{"LightMode" = "ShadowCaster"}
-            CGPROGRAM
-            
-            #pragma vertex vert
-            #pragma hull hull
-            #pragma domain domain
-            #pragma geometry geom
-            #pragma fragment frag
-            // make fog work
-            #pragma target 4.6
-            #pragma multi_compile_shadowcaster
-            #pragma shader_feature _ISTEX_ON
-            #pragma shader_feature _LowCostMode_ON _LowCostMode_OFF
- 
-            #include "UnityCG.cginc"
-            #include "GrassHeader.cginc"
-
-            
- 
-            fixed4 frag (g2f i) : SV_Target
-            {
-                half4 tex = tex2D(_GrassTex,i.uv);
-                clip(tex.a-_AlphaClip);
-                SHADOW_CASTER_FRAGMENT(i)
-            }
-            ENDCG
-        }
         
     }
     
