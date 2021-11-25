@@ -2,14 +2,17 @@
 {
     Properties
     {
+        _MainTex ("Main Texture", 2D) = "white" {}
         _GrassTex ("Grass Texture", 2D) = "white" {}
         [Toggle]_IsTex("Is Tex",Float) = 0
         
         
         _AlphaClip("Alpha Clipy", Range(0, 1)) = 0.2
+        _AOIntensity("AO Intensity", Range(-1, 1)) = 0.2
         
         _BaseColor("Base Color", COLOR) = (1,1,1,1)
         _AOColor("AO Color", COLOR) = (0,0,0,0)
+        _ShadowColor("Shadow Color", COLOR) = (0,0,0,0)
         
         _BendIntensity("Bend Intensity", Range(0, 2)) = 0.2
 //        _BendIntensity("Bend Forward Amount", Float) = 0.38
@@ -34,6 +37,110 @@
         Tags { "Queue"="Geometry" "RenderType"="Opaque" }
         
         LOD 100
+        
+                Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            // make fog work
+            #pragma multi_compile_fog
+
+            #include <UnityShadowLibrary.cginc>
+
+            #include "UnityCG.cginc"
+            #include "MyShaderInc.cginc"
+            #include "Lighting.cginc"
+            #include "AutoLight.cginc"
+
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float3 normal : NORMAL;
+                float4 tangent : TANGENT;
+                float2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float4 vertex : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float3 normal : NORMAL;
+                float4 worldPos : TEXCOORD1;
+                float3 viewDir : TEXCOORD2;
+                float2 globalUV : TEXCOORD3;
+                unityShadowCoord4 _ShadowCoord : TEXCOORD4;
+                UNITY_FOG_COORDS(5)
+            };
+
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            sampler2D  _GrassTex;
+			half4 _BaseColor;
+			half4 _AOColor;
+			half4 _ShadowColor;
+			float4 _Grass_ST;
+			half _AlphaClip;
+			half _BendIntensity;
+			// half _BendIntensity;
+			half _BendCurve;
+			half _AOIntensity;
+
+			sampler2D _GrassHeightMap;
+			float4 _GrassHeightMap_ST;
+			half _MaxWidth;
+			half _MinWidth;
+			half _MaxHeight;
+			half _MinHeight;
+
+
+			sampler2D _WindDistortionMap;
+			float4 _WindDistortionMap_ST;
+			float2 _WindFrequency;
+			float _WindStrength;
+
+
+            v2f vert (appdata v)
+            {
+                v2f o;
+                o.vertex = UnityObjectToClipPos(v.vertex);
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                o.normal = normalize(UnityObjectToWorldNormal(v.normal));
+                o.worldPos = mul(unity_ObjectToWorld, o.vertex);
+                o.viewDir = normalize(UnityWorldSpaceViewDir(o.worldPos));
+                o._ShadowCoord = ComputeScreenPos(o.vertex);
+                UNITY_TRANSFER_FOG(o,o.vertex);
+                #if UNITY_PASS_SHADOWCASTER
+                    o.vertex = UnityApplyLinearShadowBias(o.vertex);
+                #endif
+                return o;
+            }
+
+            fixed4 frag (v2f i) : SV_Target
+            {
+                half4 tex = tex2D(_MainTex,i.uv);
+                // sample the texture
+                // fixed4 col = tex2D(_MainTex, i.uv);
+                // apply fog
+                // UNITY_APPLY_FOG(i.fogCoord, col);
+                half shadow = SHADOW_ATTENUATION(i);
+                float3 N = i.normal;
+                
+                float3 L = normalize(_WorldSpaceLightPos0);
+                float3 V = normalize(i.viewDir);
+                
+                //直射
+                float NdotL = dot(N,L);
+
+            	float4 col = tex * lerp(_BaseColor,_ShadowColor,NdotL * (shadow * .5 + .5));
+            	
+
+                UNITY_APPLY_FOG(i.fogCoord, col);
+                return col;
+            }
+            ENDCG
+        }
+
  
         Pass
         {
@@ -109,7 +216,7 @@
 
                 // return shadow;
                 
-                half4 col = tex * lerp(_AOColor,_BaseColor,i.uv.y)* saturate(shade*.5+.5);
+                half4 col = tex * lerp(_AOColor,_BaseColor,i.uv.y + _AOIntensity)* lerp(_ShadowColor,half4(1,1,1,1),shade);
                 
                 UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
@@ -146,5 +253,41 @@
             }
             ENDCG
         }
+        
+         Pass 
+		{
+            //此pass就是 从默认的fallBack中找到的 "LightMode" = "ShadowCaster" 产生阴影的Pass
+			Tags { "LightMode" = "ShadowCaster" }
+
+			CGPROGRAM
+			#pragma vertex vert
+			#pragma fragment frag
+			#pragma target 2.0
+			#pragma multi_compile_shadowcaster
+			#pragma multi_compile_instancing // allow instanced shadow pass for most of the shaders
+			#include "UnityCG.cginc"
+
+			struct v2f {
+				V2F_SHADOW_CASTER;
+				UNITY_VERTEX_OUTPUT_STEREO
+			};
+
+			v2f vert( appdata_base v )
+			{
+				v2f o;
+				UNITY_SETUP_INSTANCE_ID(v);
+				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+				TRANSFER_SHADOW_CASTER_NORMALOFFSET(o)
+				return o;
+			}
+
+			float4 frag( v2f i ) : SV_Target
+			{
+				SHADOW_CASTER_FRAGMENT(i)
+			}
+			ENDCG
+
+		}
     }
+    
 }

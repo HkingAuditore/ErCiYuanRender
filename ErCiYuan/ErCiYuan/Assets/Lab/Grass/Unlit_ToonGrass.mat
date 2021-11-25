@@ -40,10 +40,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
+    - _AOIntensity: 0.295
     - _AlphaClip: 0.084
     - _Bend: 0.249
-    - _BendCurve: 2.41
-    - _BendIntensity: 0.29
+    - _BendCurve: 2.43
+    - _BendIntensity: 0.413
     - _BendRandom: 0.231
     - _BendRotationRandom: 0.2
     - _BladeCurve: 2
@@ -55,18 +56,19 @@ Material:
     - _ExtrusionFactor: 0
     - _IsTex: 1
     - _LowCostMode: 0
-    - _MaxHeight: 21.6
-    - _MaxWidth: 15
-    - _MinHeight: 1
-    - _MinWidth: 5
-    - _TessellationUniform: 3
+    - _MaxHeight: 24.7
+    - _MaxWidth: 30
+    - _MinHeight: 10
+    - _MinWidth: 20
+    - _TessellationUniform: 1
     - _TranslucentGain: 0.826
     - _WindStrength: 0.487
     m_Colors:
-    - _AOColor: {r: 0.13129488, g: 0.16981131, b: 0.04725881, a: 1}
-    - _BaseColor: {r: 0.5526444, g: 0.6603774, b: 0.43298328, a: 1}
+    - _AOColor: {r: 0.6788126, g: 0.7735849, b: 0.5728907, a: 1}
+    - _BaseColor: {r: 0.379435, g: 0.754717, b: 0.32395872, a: 1}
     - _BottomColor: {r: 1, g: 1, b: 1, a: 1}
     - _HeightShadowColor: {r: 0.041073337, g: 0.122641504, b: 0.06683171, a: 1}
+    - _ShadowColor: {r: 0.50534, g: 0.6415094, b: 0.51810586, a: 0}
     - _TopColor: {r: 1, g: 1, b: 1, a: 1}
     - _WindFrequency: {r: 0.4, g: 0.4, b: 0, a: 0}
   m_BuildTextureStacks: []

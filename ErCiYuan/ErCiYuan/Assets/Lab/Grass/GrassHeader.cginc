@@ -36,11 +36,13 @@ struct g2f
 sampler2D  _GrassTex;
 half4 _BaseColor;
 half4 _AOColor;
+half4 _ShadowColor;
 float4 _Grass_ST;
 half _AlphaClip;
 half _BendIntensity;
 // half _BendIntensity;
 half _BendCurve;
+half _AOIntensity;
 
 sampler2D _GrassHeightMap;
 float4 _GrassHeightMap_ST;
